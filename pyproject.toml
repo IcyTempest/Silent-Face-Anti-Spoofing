@@ -1,0 +1,23 @@
+[project]
+name = "silent-face-anti-spoofing"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "torch>=2.2",
+    "torchvision>=0.17",
+    "opencv-python>=4.10",
+    "numpy>=1.26,<2",
+    "pillow>=10",
+    "easydict>=1.10",
+    "tqdm>=4.66",
+    "tensorboardX>=2.6",
+]
+
+[project.scripts]
+silent-face-anti-spoofing = "silent_face_anti_spoofing:main"
+
+[build-system]
+requires = ["uv_build>=0.12.3,<0.13.0"]
+build-backend = "uv_build"

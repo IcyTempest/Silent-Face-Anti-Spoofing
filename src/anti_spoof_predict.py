@@ -27,27 +27,47 @@ MODEL_MAPPING = {
 
 class Detection:
     def __init__(self):
-        caffemodel = "./resources/detection_model/Widerface-RetinaFace.caffemodel"
+        # caffemodel = "./resources/detection_model/Widerface-RetinaFace.caffemodel"
+        caffemodel = "./resources/ynet/face_detection_yunet_2023mar.onnx"
         deploy = "./resources/detection_model/deploy.prototxt"
-        self.detector = cv2.dnn.readNetFromCaffe(deploy, caffemodel)
-        self.detector_confidence = 0.6
+        # self.detector = cv2.dnn.readNetFromCaffe(deploy, caffemodel)
+        self.detector = cv2.FaceDetectorYN.create(caffemodel, "", (320, 320), 0.8, 0.3, 5000)
+        # self.detector_confidence = 0.6
 
     def get_bbox(self, img):
         height, width = img.shape[0], img.shape[1]
-        aspect_ratio = width / height
-        if img.shape[1] * img.shape[0] >= 192 * 192:
-            img = cv2.resize(img,
-                             (int(192 * math.sqrt(aspect_ratio)),
-                              int(192 / math.sqrt(aspect_ratio))), interpolation=cv2.INTER_LINEAR)
+        detect_width = max(32, (width // 32 ) * 32)
+        detect_height = max(32, (height // 32) * 32)
 
-        blob = cv2.dnn.blobFromImage(img, 1, mean=(104, 117, 123))
-        self.detector.setInput(blob, 'data')
-        out = self.detector.forward('detection_out').squeeze()
-        max_conf_index = np.argmax(out[:, 2])
-        left, top, right, bottom = out[max_conf_index, 3]*width, out[max_conf_index, 4]*height, \
-                                   out[max_conf_index, 5]*width, out[max_conf_index, 6]*height
-        bbox = [int(left), int(top), int(right-left+1), int(bottom-top+1)]
-        return bbox
+        resized = cv2.resize(img, (detect_width, detect_height))
+        self.detector.setInputSize((detect_width, detect_height))
+        _, faces = self.detector.detect(resized)
+
+        if faces is None or len(faces) == 0:
+            return [0, 0, width, height]
+
+        best = faces[np.argmax(faces[:, -1])]
+        x, y, bw, bh = best[:4]
+
+        sx, sy = width / detect_width, height / detect_height
+        return [int(x * sx), int(y * sy), int(bw * sx), int(bh * sy)]
+
+        # height, width = img.shape[0], img.shape[1]
+        # aspect_ratio = width / height
+        # if img.shape[1] * img.shape[0] >= 192 * 192:
+        #     img = cv2.resize(img,
+        #                      (int(192 * math.sqrt(aspect_ratio)),
+        #                       int(192 / math.sqrt(aspect_ratio))), interpolation=cv2.INTER_LINEAR)
+        #
+        # blob = cv2.dnn.blobFromImage(img, 1, mean=(104, 117, 123))
+        # self.detector.setInput(blob, 'data')
+        # out = self.detector.forward('detection_out').squeeze()
+        # max_conf_index = np.argmax(out[:, 2])
+        # left, top, right, bottom = out[max_conf_index, 3]*width, out[max_conf_index, 4]*height, \
+        #                            out[max_conf_index, 5]*width, out[max_conf_index, 6]*height
+        # bbox = [int(left), int(top), int(right-left+1), int(bottom-top+1)]
+        # return bbox
+
 
 
 class AntiSpoofPredict(Detection):
@@ -88,7 +108,7 @@ class AntiSpoofPredict(Detection):
         self.model.eval()
         with torch.no_grad():
             result = self.model.forward(img)
-            result = F.softmax(result).cpu().numpy()
+            result = F.softmax(result, dim=1).cpu().numpy()
         return result
 
 
