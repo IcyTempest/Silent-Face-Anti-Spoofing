@@ -13,6 +13,10 @@ dependencies = [
     "easydict>=1.10",
     "tqdm>=4.66",
     "tensorboardX>=2.6",
+    "onnxruntime>=1.29.0",
+    "opencv-python-headless>=4.11.0.86",
+    "onnx>=1.19.0",
+    "onnxconverter-common>=1.16.0",
 ]
 
 [project.scripts]
